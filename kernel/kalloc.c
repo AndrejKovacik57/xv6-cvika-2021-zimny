@@ -80,3 +80,15 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+//get available bytes in memorz
+uint64
+freemem(){
+    struct run *r;
+    uint64 i;
+    r = kmem.freelist;
+    //we go trough struct list until we reach end, so we get number of nodes
+    for(i=0; r; i++)
+        r =  r->next;
+
+    return i*PGSIZE;
+}
