@@ -83,12 +83,12 @@ kalloc(void)
 //get available bytes in memorz
 uint64
 freemem(){
-    struct run *r;
-    uint64 i;
-    r = kmem.freelist;
-    //we go trough struct list until we reach end, so we get number of nodes
-    for(i=0; r; i++)
-        r =  r->next;
+  struct run *r;
+  uint64 i;
+  r = kmem.freelist;
+  //we go trough struct list until we reach end, so we get number of nodes
+  for(i=0; r; i++)
+    r =  r->next;
 
-    return i*PGSIZE;
+  return i*PGSIZE;
 }
