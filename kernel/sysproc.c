@@ -89,7 +89,6 @@ uint64
 sys_uptime(void)
 {
   uint xticks;
-
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
@@ -100,10 +99,11 @@ sys_uptime(void)
 uint64
 sys_trace(void)
 {
-    int mask;
+  int mask;
 
-    if(argint(0, &mask) < 0)
-        return -1;
-    myproc()->trace_mask = mask;
-    return 0;
+  if(argint(0, &mask) < 0)
+    return -1;
+
+  myproc()->trace_mask = mask;
+  return 0;
 }
