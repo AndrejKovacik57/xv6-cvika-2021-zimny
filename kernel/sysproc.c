@@ -80,7 +80,41 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  //page address
+  uint64 start;
+  int npages;
+  uint64 bitmask_user_adderss;
+
+  uint64 bitmask_kernel = 0;
+
+  if(argaddr(0, &start) < 0)
+    return -1;
+  if(argint(1, &npages) < 0)
+    return -1;
+
+  if(argaddr(2, &bitmask_user_adderss) < 0)
+    return -1;
+
+
+  for(int i = 0; i < npages; i++){
+    pte_t *pte = walk(myproc()->pagetable, start, 0);
+    //check if page was accessed
+    if(pte && *pte & PTE_A) {
+      //write that page was accessed
+      bitmask_kernel |= 1 << i;
+      //we have to reset acces bit in page
+      *pte &= ~PTE_A;
+    }
+
+    start += PGSIZE;
+  }
+
+  //we have to get our output mask from kernel to user
+  //we copy it only so many times that user requierd, rounded up to bytes
+  if(copyout(myproc()->pagetable, bitmask_user_adderss,
+             (char *)&bitmask_kernel, (npages + 7) / 8))
+    return -1;
+
   return 0;
 }
 #endif
@@ -107,3 +141,4 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
