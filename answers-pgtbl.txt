@@ -1,0 +1,2 @@
+prva otazka: fork, rychlejsie je to preto lebo ked sa vytvoria nove procesy tak sa namapuju stranky do pamati 
+druha otazka: 
