@@ -1,0 +1,15 @@
+otazka1:
+registre a0 az a7 obsahuju argumenty funkcii
+hodnota 13 je ulozena v registry a2
+
+otazka2: v a1 mame hodnotu funkcie f a volanie tam nieje, kompilator urci hodnotu vo pred 
+
+otazka3: na adrese 628
+
+otazka4: hodnota je 30
+
+otazka5:
+vystup je "HE110 World"
+ak by bol big endian tak to nepojde od konca ale od zaciatku, takze by i muselo byt 0x726c6400. Cislo 57616 nemusime menit pretoze je to desiatkove cize jeho hex adresa by sa zapisala opacne v big edian
+
+otazka6: "x=%d y=%d" je register a0, 1 je register a1 a dalej je register a2 cize sa vypise to co obsahuje
