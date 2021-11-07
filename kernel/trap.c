@@ -65,6 +65,11 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if(r_scause() == 15){
+    //page table and adress that was cause,
+    //if we cannot allocate mem or processa acessed mem which he should then we kill process
+    if(uvmcow(p->pagetable, r_stval()) != 0)
+      p->killed = 1;
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
