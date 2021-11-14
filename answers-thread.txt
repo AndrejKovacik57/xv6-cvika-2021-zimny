@@ -1,0 +1,1 @@
+Pretoze vlakna bezia paralelne. Moze sa ze obe vlakna zapisu na to iste miesto cize ak prve vlakno zapise a potom druhe tak sa nam povodny zapis strati
