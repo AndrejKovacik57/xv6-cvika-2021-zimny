@@ -5,6 +5,10 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
+#include "fcntl.h"
 
 struct cpu cpus[NCPU];
 
@@ -32,7 +36,7 @@ struct spinlock wait_lock;
 void
 proc_mapstacks(pagetable_t kpgtbl) {
   struct proc *p;
-  
+
   for(p = proc; p < &proc[NPROC]; p++) {
     char *pa = kalloc();
     if(pa == 0)
@@ -47,7 +51,7 @@ void
 procinit(void)
 {
   struct proc *p;
-  
+
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -88,7 +92,7 @@ myproc(void) {
 int
 allocpid() {
   int pid;
-  
+
   acquire(&pid_lock);
   pid = nextpid;
   nextpid = nextpid + 1;
@@ -229,7 +233,7 @@ userinit(void)
 
   p = allocproc();
   initproc = p;
-  
+
   // allocate one user page and copy init's instructions
   // and data into it.
   uvminit(p->pagetable, initcode, sizeof(initcode));
@@ -281,6 +285,13 @@ fork(void)
     return -1;
   }
 
+  for (int i= 0; i < VMA_NUM; i++) {
+    if(p->vma[i].f != 0){
+      np->vma[i] = p->vma[i];
+      filedup(np->vma[i].f);
+    }
+  }
+
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     freeproc(np);
@@ -300,9 +311,7 @@ fork(void)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
-
   safestrcpy(np->name, p->name, sizeof(p->name));
-
   pid = np->pid;
 
   release(&np->lock);
@@ -353,6 +362,32 @@ exit(int status)
     }
   }
 
+  for(int j = 0; j < VMA_NUM; j++) {
+    uint64 addr = p->vma[j].address;
+    int length = p->vma[j].length;
+
+    struct vma *vma = &p->vma[j];
+
+    for(int i = 0; i < length; i += PGSIZE){
+      if (walkaddr(p->pagetable, addr + i) == 0)
+        continue;
+
+      if ((vma->flags & MAP_SHARED) ) {
+        int off = PGROUNDDOWN(addr + i) - vma->address + vma->offset;
+        begin_op();
+        ilock(vma->f->ip);
+        writei(vma->f->ip, 1, PGROUNDDOWN(addr + i) , off, PGSIZE);
+        iunlock(vma->f->ip);
+        end_op();
+      }
+      uvmunmap(p->pagetable, PGROUNDDOWN(addr + i), 1, 1);
+    }
+    vma->address += length;
+    vma->offset += length;
+    vma->length -= length;
+  }
+
+
   begin_op();
   iput(p->cwd);
   end_op();
@@ -365,7 +400,6 @@ exit(int status)
 
   // Parent might be sleeping in wait().
   wakeup(p->parent);
-  
   acquire(&p->lock);
 
   p->xstate = status;
@@ -421,7 +455,7 @@ wait(uint64 addr)
       release(&wait_lock);
       return -1;
     }
-    
+
     // Wait for a child to exit.
     sleep(p, &wait_lock);  //DOC: wait-sleep
   }
@@ -439,7 +473,7 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  
+
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
@@ -529,7 +563,7 @@ void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
+
   // Must acquire p->lock in order to
   // change p->state and then call sched.
   // Once we hold p->lock, we can be
